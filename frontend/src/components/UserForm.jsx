@@ -41,7 +41,7 @@ export default function UserForm() {
         <div className="input">
           <label htmlFor="fullName">Full Name</label>
           <input
-            id="fullName" name="fullName" placeholder="Ayush Chaudhary"
+            id="fullName" name="fullName"
             value={values.fullName} onChange={handleChange}
           />
           {errors.fullName && <div className="error">{errors.fullName[0]}</div>}
@@ -50,7 +50,7 @@ export default function UserForm() {
         <div className="input">
           <label htmlFor="email">Email</label>
           <input
-            id="email" name="email" type="email" placeholder="you@example.com"
+            id="email" name="email" type="email"
             value={values.email} onChange={handleChange}
           />
           {errors.email && <div className="error">{errors.email[0]}</div>}
@@ -61,14 +61,14 @@ export default function UserForm() {
         <div className="input">
           <label htmlFor="phone">Phone (optional)</label>
           <input
-            id="phone" name="phone" placeholder="+1 647…"
+            id="phone" name="phone"
             value={values.phone} onChange={handleChange}
           />
         </div>
         <div className="input">
           <label htmlFor="age">Age (optional)</label>
           <input
-            id="age" name="age" inputMode="numeric" placeholder="28"
+            id="age" name="age" inputMode="numeric"
             value={values.age} onChange={handleChange}
           />
           {errors.age && <div className="error">{errors.age[0]}</div>}
@@ -78,7 +78,7 @@ export default function UserForm() {
       <div className="input">
         <label htmlFor="message">Message (optional)</label>
         <textarea
-          id="message" name="message" rows={4} placeholder="Tell us something…"
+          id="message" name="message" rows={4}
           value={values.message} onChange={handleChange}
         />
         <div className="helper">Max 500 characters.</div>
@@ -97,9 +97,7 @@ export default function UserForm() {
         {status.loading ? "Submitting…" : "Submit"}
       </button>
 
-      {status.successMsg && (
-        <div className="success">{status.successMsg}</div>
-      )}
+      {status.successMsg && <div className="success">{status.successMsg}</div>}
     </form>
   );
 }

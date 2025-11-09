@@ -1,7 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
-
+// src/api.js  (Docker / same-origin)
 export async function submitForm(payload) {
-  const res = await fetch(`${API_BASE}/api/submit`, {
+  const res = await fetch(`/api/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)

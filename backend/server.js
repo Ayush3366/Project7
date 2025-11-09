@@ -8,12 +8,13 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 app.use(morgan("dev"));
 
+// Zod schema for validation
 const FormSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email"),
@@ -29,18 +30,27 @@ const FormSchema = z.object({
   terms: z.boolean().refine(v => v === true, "You must accept the terms")
 });
 
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+// Health check route
+app.get("/api/health", (_req, res) => {
+  return res.json({ ok: true });
+});
 
 app.post("/api/submit", (req, res) => {
+
+  // ✅ THIS IS THE LOG YOU ASKED FOR
+  console.log("Received:", req.body);
+
   const parsed = FormSchema.safeParse(req.body);
+
   if (!parsed.success) {
-    const errors = parsed.error.flatten().fieldErrors;
-    return res.status(400).json({ ok: false, errors });
+    return res.status(400).json({
+      ok: false,
+      errors: parsed.error.flatten().fieldErrors
+    });
   }
 
-  // Simulate saving…
+  // Here you could store to DB later.
   const { fullName, email } = parsed.data;
-  // You can insert DB logic here.
 
   return res.json({
     ok: true,

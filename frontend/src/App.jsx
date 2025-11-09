@@ -7,7 +7,7 @@ export default function App() {
       <div className="container">
         <div className="card">
           <h1>User Info Form</h1>
-          <div className="subtle">Interactive validation • Animated gradients • Glass UI</div>
+          <div className="subtle">Interactive validation • Static gradient • Glass UI</div>
           <UserForm />
         </div>
       </div>
