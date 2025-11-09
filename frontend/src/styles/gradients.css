@@ -1,0 +1,126 @@
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.25);
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+/* Static, single gradient (no animation) */
+.gradient-bg {
+  min-height: 100%;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+}
+
+.container {
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+}
+
+.card {
+  width: 100%;
+  max-width: 640px;
+  padding: 28px;
+  border-radius: 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  letter-spacing: 0.4px;
+}
+
+.subtle {
+  opacity: 0.85;
+  margin-bottom: 18px;
+}
+
+.row {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .row.two {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+
+.input input,
+.input textarea {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.2);
+  color: #fff;
+  transition: transform 0.08s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.input input:focus,
+.input textarea:focus {
+  transform: translateY(-1px);
+  border-color: #fff;
+  box-shadow: 0 0 0 4px rgba(255,255,255,0.15);
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 6px;
+  opacity: 0.9;
+}
+
+.helper {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.error {
+  color: #ffd2d2;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+button {
+  margin-top: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 0;
+  background: rgba(255,255,255,0.9);
+  color: #111;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.06s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+  transform: translateY(-1px);
+}
+
+.success {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(46, 213, 115, 0.2);
+  border: 1px solid rgba(46, 213, 115, 0.35);
+}
+
+.checkbox-row {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
