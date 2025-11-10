@@ -7,7 +7,9 @@ pipeline {
     SONAR_PROJECT_KEY   = 'project7'
   }
 
-  options { timestamps(); ansiColor('xterm') }
+  options {
+    timestamps()
+  }
 
   stages {
     stage('Checkout') {
@@ -18,6 +20,7 @@ pipeline {
       steps {
         dir('frontend') {
           sh '''
+            command -v npm || (echo "npm missing" && exit 1)
             npm ci || npm install
             npm run build || true
           '''
@@ -29,6 +32,7 @@ pipeline {
       steps {
         dir('backend') {
           sh '''
+            command -v npm || (echo "npm missing" && exit 1)
             npm ci || npm install
             npm test || true
           '''
@@ -38,15 +42,15 @@ pipeline {
 
     stage('SonarQube Scan') {
       steps {
-        withSonarQubeEnv('sonarqube-local') {
-          script {
-            // Get path to the scanner installed in "Global Tool Configuration"
-            def scannerHome = tool name: 'sonar-scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+        script {
+          // uses the tool you configured in Global Tool Config
+          def scannerHome = tool 'sonar-scanner'
+          withSonarQubeEnv('sonarqube-local') {
             sh """
               "${scannerHome}/bin/sonar-scanner" \
                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                 -Dsonar.sources=. \
-                -Dsonar.host.url="$SONAR_HOST_URL"
+                -Dsonar.host.url=${SONAR_HOST_URL}
             """
           }
         }
@@ -56,6 +60,7 @@ pipeline {
     stage('Quality Gate') {
       steps {
         timeout(time: 5, unit: 'MINUTES') {
+          // Set abortPipeline: false if your SonarQube webhook isn't set yet
           waitForQualityGate abortPipeline: false
         }
       }
@@ -67,7 +72,7 @@ pipeline {
           docker build -t $DOCKER_IMAGE:${BUILD_NUMBER} -t $DOCKER_IMAGE:latest .
         '''
         withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIAL,
-                      usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
             docker push $DOCKER_IMAGE:${BUILD_NUMBER}
@@ -89,5 +94,7 @@ pipeline {
     }
   }
 
-  post { always { cleanWs() } }
+  post {
+    always { cleanWs() }
+  }
 }
