@@ -13,10 +13,17 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: __FRONT_IMAGE__
+          image: ayush3366/project7-frontend:latest
           ports:
             - containerPort: 80
-          env:
-            # Point frontend to backend ClusterIP service
-            - name: VITE_API_URL
-              value: "http://project7-backend-svc:3001"
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: project7-frontend-nginx
+            items:
+              - key: default.conf
+                path: default.conf
