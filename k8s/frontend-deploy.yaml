@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: project7-frontend
+  labels: { app: project7-frontend }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: project7-frontend }
+  template:
+    metadata:
+      labels: { app: project7-frontend }
+    spec:
+      containers:
+        - name: frontend
+          image: __FRONT_IMAGE__
+          ports:
+            - containerPort: 80
+          env:
+            # Point frontend to backend ClusterIP service
+            - name: VITE_API_URL
+              value: "http://project7-backend-svc:3001"
