@@ -1,0 +1,109 @@
+pipeline {
+  agent any
+  environment {
+    // Jenkins credentials you already created earlier:
+    AZURE_SP     = credentials('azure-sp')     // username = clientId, password = secret
+    AZURE_TENANT = credentials('azure-tenant') // secret text = tenantId
+
+    // Azure targets
+    AZ_RG     = 'MyResource'
+    AZ_AKS    = 'project7-aks'
+    AZ_REGION = 'canadacentral'   // change if you prefer
+
+    // Your images (built by CI)
+    FRONT_IMAGE = 'ayush3366/project7-frontend:latest'
+    BACK_IMAGE  = 'ayush3366/project7-backend:latest'
+  }
+
+  options { timestamps() }
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+
+    stage('Azure Login (Service Principal)') {
+      steps {
+        sh '''
+          az logout || true
+          az login --service-principal \
+            -u "$AZURE_SP_USR" -p "$AZURE_SP_PSW" --tenant "$AZURE_TENANT"
+          az account show
+        '''
+      }
+    }
+
+    stage('Ensure Resource Group & AKS') {
+      steps {
+        sh '''
+          # Ensure RG
+          az group create --name "$AZ_RG" --location "$AZ_REGION"
+
+          # Create AKS only if missing (1x B2s node is fine for demo)
+          set +e
+          az aks show --resource-group "$AZ_RG" --name "$AZ_AKS" >/dev/null 2>&1
+          AKS_EXISTS=$?
+          set -e
+          if [ "$AKS_EXISTS" -ne 0 ]; then
+            az aks create \
+              --resource-group "$AZ_RG" \
+              --name "$AZ_AKS" \
+              --node-count 1 \
+              --node-vm-size Standard_B2s \
+              --generate-ssh-keys
+          else
+            echo "AKS '$AZ_AKS' already exists."
+          fi
+        '''
+      }
+    }
+
+    stage('Get kubeconfig') {
+      steps {
+        sh '''
+          az aks get-credentials --resource-group "$AZ_RG" --name "$AZ_AKS" --overwrite-existing
+          kubectl version --client
+        '''
+      }
+    }
+
+    stage('Render Manifests with Current Images') {
+      steps {
+        sh '''
+          mkdir -p k8s-rendered
+
+          # Frontend Deployment
+          sed "s|__FRONT_IMAGE__|$FRONT_IMAGE|g" k8s/frontend-deploy.yaml > k8s-rendered/frontend-deploy.yaml
+
+          # Backend Deployment
+          sed "s|__BACK_IMAGE__|$BACK_IMAGE|g"   k8s/backend-deploy.yaml  > k8s-rendered/backend-deploy.yaml
+
+          # Services (no image vars)
+          cp k8s/frontend-svc.yaml k8s-rendered/frontend-svc.yaml
+          cp k8s/backend-svc.yaml  k8s-rendered/backend-svc.yaml
+        '''
+      }
+    }
+
+    stage('kubectl apply') {
+      steps {
+        sh '''
+          kubectl apply -f k8s-rendered/backend-deploy.yaml
+          kubectl apply -f k8s-rendered/backend-svc.yaml
+          kubectl apply -f k8s-rendered/frontend-deploy.yaml
+          kubectl apply -f k8s-rendered/frontend-svc.yaml
+
+          echo "Waiting for LoadBalancer external IP..."
+          for i in {1..30}; do
+            IP=$(kubectl get svc project7-frontend-svc -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            if [ -n "$IP" ]; then echo "External IP: $IP"; break; fi
+            sleep 10
+          done
+
+          echo "Final objects:"
+          kubectl get deploy,svc,pod -o wide
+        '''
+      }
+    }
+  }
+}
