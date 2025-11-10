@@ -2,9 +2,13 @@ pipeline {
   agent any
 
   environment {
-    DOCKER_IMAGE        = 'ayush3366/project7'
+    // Docker Hub repos for each image
+    FRONT_IMAGE = 'ayush3366/project7-frontend'
+    BACK_IMAGE  = 'ayush3366/project7-backend'
     REGISTRY_CREDENTIAL = 'docker-hub-credentials'
-    SONAR_PROJECT_KEY   = 'project7'
+
+    // SonarQube
+    SONAR_PROJECT_KEY = 'project7'
   }
 
   options { timestamps() }
@@ -32,6 +36,7 @@ pipeline {
           sh '''
             command -v npm
             npm ci || npm install
+            # run tests if you add them; keep non-fatal for now
             npm test || true
           '''
         }
@@ -40,9 +45,9 @@ pipeline {
 
     stage('SonarQube Scan') {
       steps {
+        // Uses the SonarQube server you configured in Manage Jenkins > System
         script {
-          // Use the SonarQube Scanner tool you configured in Jenkins (Manage Jenkins > Global Tool Config)
-          def scannerHome = tool 'sonar-scanner'
+          def scannerHome = tool name: 'sonar-scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
           withSonarQubeEnv('sonarqube-local') {
             sh """
               ${scannerHome}/bin/sonar-scanner \
@@ -57,40 +62,52 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
-        timeout(time: 15, unit: 'MINUTES') {
-          // If webhook works, this returns fast; otherwise Jenkins will poll until the timeout
-          waitForQualityGate abortPipeline: false
+        timeout(time: 15, unit: 'MINUTES') {   // longer, relies on SonarQube webhook to Jenkins
+          waitForQualityGate abortPipeline: true
         }
       }
     }
 
-    stage('Docker Build & Push') {
+    stage('Docker Build (Frontend & Backend)') {
       steps {
         sh '''
-          docker build -t $DOCKER_IMAGE:${BUILD_NUMBER} -t $DOCKER_IMAGE:latest .
+          # Build frontend image from frontend/Dockerfile
+          docker build -f frontend/Dockerfile -t ${FRONT_IMAGE}:${BUILD_NUMBER} -t ${FRONT_IMAGE}:latest frontend
+
+          # Build backend image from backend/Dockerfile
+          docker build -f backend/Dockerfile -t ${BACK_IMAGE}:${BUILD_NUMBER} -t ${BACK_IMAGE}:latest backend
         '''
+      }
+    }
+
+    stage('Docker Push') {
+      steps {
         withCredentials([usernamePassword(credentialsId: REGISTRY_CREDENTIAL,
                           usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
           sh '''
             echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-            docker push $DOCKER_IMAGE:${BUILD_NUMBER}
-            docker push $DOCKER_IMAGE:latest
+            docker push ${FRONT_IMAGE}:${BUILD_NUMBER}
+            docker push ${FRONT_IMAGE}:latest
+            docker push ${BACK_IMAGE}:${BUILD_NUMBER}
+            docker push ${BACK_IMAGE}:latest
           '''
         }
       }
     }
 
-    stage('Trivy Scan') {
+    stage('Trivy Scan (both images)') {
       steps {
         sh '''
           mkdir -p trivy-reports
-          trivy image --no-progress $DOCKER_IMAGE:${BUILD_NUMBER} \
-            > trivy-reports/scan_${BUILD_NUMBER}.txt || true
+          trivy image --no-progress ${FRONT_IMAGE}:${BUILD_NUMBER} > trivy-reports/frontend_${BUILD_NUMBER}.txt || true
+          trivy image --no-progress ${BACK_IMAGE}:${BUILD_NUMBER}  > trivy-reports/backend_${BUILD_NUMBER}.txt  || true
         '''
         archiveArtifacts artifacts: 'trivy-reports/*.txt', fingerprint: true
       }
     }
   }
 
-  post { always { cleanWs() } }
+  post {
+    always { cleanWs() }
+  }
 }
